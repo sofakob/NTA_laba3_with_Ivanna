@@ -6,7 +6,7 @@ import numpy
 
 
 def rivnain(alhpa:int, s:list, n:int):
-    k=random.randint(0, 7)
+    k=random.randint(0, n-1)
     a_k=pow(alhpa, k, n)
     div=[]
     for i in range(len(s)):
@@ -33,23 +33,16 @@ def huba(alhpa:int, s:list, n:int, k:list, div:list):
     return k, div
 
 def liniyno_nezalegn(k, div):
-    k_for=k[:]
-    div_for=div[:]
-    matr=numpy.array([row +[k[i]] for i, row in enumerate(div)])
-    matrixa=[row +[k[i]] for i, row in enumerate(div)]
-    matr_without_linia=numpy.array(matrixa[0])
-    matr_without_linia=numpy.array(matrixa[0:1])
-    index1=numpy.linalg.matrix_rank(matr_without_linia, 0)
-    for j in range(1, len(k_for)):
-        matr_without_linia=numpy.array(matrixa[0:j+1])
-        index2=numpy.linalg.matrix_rank(matr_without_linia, 1e-10)
-        if index2==index1:
-            matrixa.pop(j)
-            k_for.pop(j)
-            div_for.pop(j)
-            j=-1
-        index1=index2
-    matr_without_linia=numpy.array(matrixa[:])
+    k_for, div_for=[],[]
+    index=0
+    for i in range(len(k)):
+        matr= numpy.vstack([div_for, div[i]] if div_for else numpy.array([div[i]]))
+        index2= numpy.linalg.matrix_rank(matr, 1e-10)
+        if index2>index:
+            k_for.append(k[i])
+            div_for.append(div[i])
+            index=index2
+
     
     return k_for, div_for
 
@@ -114,61 +107,62 @@ def algoritm_evklida_with_a_b(b:int, a:int, n:int):
     return v
 
 def index_calculus(alhpa:int, beta:int, n:int):
-    c=3.38
+    c=3.38/2
     base=int(2)
-    b=int(c*math.exp((1/2)*math.sqrt(math.log(n, base)*math.log(math.log(n, base), base))))
+    b=int(c*math.exp((1/2)*math.sqrt(math.log(n, base)*math.log(math.log(n, base), base))))-1
     s=list(sympy.primerange(2, b))
-    print(s) 
-    s=[2, 3, 5, 7]
-    k, div=rivnain(alhpa, s, n)
-    k2, div2=rivnain(alhpa, s, n)
-    while k==k2:
-        k2, div2=rivnain(alhpa, s, n)
-    k=[k, k2]
-    div=[div, div2]
-    reshenie=None
+
+    #s=[2, 3, 5, 7]
+    k, div=[], []
     i=0
-    while reshenie is None and i<50:
-        print(k, div, i)
-        i=1+i
-        try:
-            k, div=liniyno_nezalegn(k, div)
-            matr=sympy.Matrix([row +[k[j]] for j, row in enumerate(div)])
-            k_coef=[]
-            for j in range(len(k)):
+    while True:
+        
+        k, div=huba(alhpa, s, n, k, div)
+        k, div= liniyno_nezalegn(k, div)
+        
+        if len(k)>=len(s):
+            break
+    matr=sympy.Matrix([row +[k[j]] for j, row in enumerate(div)])
+    k_coef=[]
+    for j in range(len(k)):
                 k_coef.append("X"+str(j+1))
 
-            reshenie = sympy.solve_linear_system_LU(matr, k_coef)
-        except:
-            reshenie=None
-            k, div=huba(alhpa, s, n, k, div)
-    print(reshenie)
+    reshenie = sympy.solve_linear_system_LU(matr, k_coef)
+    
     chiselnik=[]
     znamenik=[]
     for i in reshenie.values():
         chiselnik.append(i.p)
         znamenik.append(i.q)
 
-    print(chiselnik, znamenik)
+    
     portibni_x=[]
     for i in range(len(chiselnik)):
         x=algoritm_evklida_with_a_b(znamenik[i], n, n)
         
         x=x*chiselnik[i]%(n-1)
         portibni_x.append(x)
-    print(portibni_x)
+   
 
     l, d=chetvertuykrok(alhpa, beta, s, n)
-    print(l, d)
+    
     log_alfa=poshuk_log(portibni_x,d, l, n )
-    print(log_alfa)
+    proverka=perevirka(alhpa, beta, n, log_alfa)
+    if proverka==False:
+        log_alfa=index_calculus(alhpa, beta, n)
+    return log_alfa
     
 
+def perevirka(alhpa:int, beta:int, n:int, log_alfa:int):
+    x=pow(alhpa, log_alfa, n)
+    if beta==x:
+        return True
+    else:
+        return False
 
 
 
 
 
 
-
-index_calculus(10, int(17), int(47))
+print(index_calculus(5, int(11), int(73)))
