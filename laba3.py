@@ -2,7 +2,8 @@ import sympy
 import math
 import random
 import numpy
-
+from concurrent.futures import ProcessPoolExecutor
+import time
 
 
 def rivnain(alhpa:int, s:list, n:int):
@@ -12,10 +13,10 @@ def rivnain(alhpa:int, s:list, n:int):
     for i in range(len(s)):
         if a_k%s[i]==0:
             div.append(1)
-            a_k/=s[i]
+            a_k//=s[i]
             while a_k%s[i]==0:
                 div[i]+=1
-                a_k/=s[i]
+                a_k//=s[i]
         else:
             div.append(0)
     for i in range(len(div)):
@@ -151,7 +152,69 @@ def index_calculus(alhpa:int, beta:int, n:int):
     if proverka==False:
         log_alfa=index_calculus(alhpa, beta, n)
     return log_alfa
+
+
+#з паралелізацією
+
+def parallel(task):
+    alpha, s, n = task
+    return rivnain(alpha, s, n)
+
+
+def index_calculus_par(alhpa:int, beta:int, n:int):
+    c=3.38/2
+    base=int(2)
+    b=int(c*math.exp((1/2)*math.sqrt(math.log(n, base)*math.log(math.log(n, base), base))))-1
+    s=list(sympy.primerange(2, b))
+
+    #s=[2, 3, 5, 7]
+    k, div=[], []
+    with ProcessPoolExecutor() as executor:
+        while len(k) < len(s):
+            tasks = [(alhpa, s, n) for i in range(len(s))]
+            results = executor.map(parallel, tasks)
+
+            for k_i, d_i in results:
+                if k_i not in k:
+                    k.append(k_i)
+                    div.append(d_i)
+                k, div = liniyno_nezalegn(k, div)
+                if len(k) >= len(s):
+                    break
+                    
+            k, div = liniyno_nezalegn(k, div)
+            
+            
+    matr=sympy.Matrix([row +[k[j]] for j, row in enumerate(div)])
+    k_coef=[]
+    for j in range(len(k)):
+                k_coef.append("X"+str(j+1))
+
+    reshenie = sympy.solve_linear_system_LU(matr, k_coef)
     
+    chiselnik=[]
+    znamenik=[]
+    for i in reshenie.values():
+        chiselnik.append(i.p)
+        znamenik.append(i.q)
+
+    
+    portibni_x=[]
+    for i in range(len(chiselnik)):
+        x=algoritm_evklida_with_a_b(znamenik[i], n, n)
+        
+        x=x*chiselnik[i]%(n-1)
+        portibni_x.append(x)
+   
+
+    l, d=chetvertuykrok(alhpa, beta, s, n)
+    
+    log_alfa=poshuk_log(portibni_x,d, l, n )
+    proverka=perevirka(alhpa, beta, n, log_alfa)
+    if proverka==False:
+        log_alfa=index_calculus(alhpa, beta, n)
+    return log_alfa
+
 
 def perevirka(alhpa:int, beta:int, n:int, log_alfa:int):
     x=pow(alhpa, log_alfa, n)
@@ -161,9 +224,21 @@ def perevirka(alhpa:int, beta:int, n:int, log_alfa:int):
         return False
 
 
-alfa=int(input("alpha= "))
-beta=int(input("beta= "))
-n=int(input("n= "))
+if __name__ == "__main__":
+    
+    alfa = int(input("alpha= "))
+    beta = int(input("beta= "))
+    n = int(input("n= "))
+
+    print("з паралелізацією")
+    start = time.time()
+    print("х:", index_calculus_par(alfa, beta, n))
+    print("час виконання:", round(time.time() - start, 2), "секунд")
 
 
-print(index_calculus(alfa, beta, n))
+    print("без паралелізації")
+    start = time.time()
+    print("х:", index_calculus(alfa, beta, n))
+    print("час виконання:", round(time.time() - start, 2), "секунд")
+
+        
