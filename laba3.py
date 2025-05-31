@@ -161,8 +161,9 @@ def perevirka(alhpa:int, beta:int, n:int, log_alfa:int):
         return False
 
 
+alfa=int(input("alpha= "))
+beta=int(input("beta= "))
+n=int(input("n= "))
 
 
-
-
-print(index_calculus(5, int(11), int(73)))
+print(index_calculus(alfa, beta, n))
